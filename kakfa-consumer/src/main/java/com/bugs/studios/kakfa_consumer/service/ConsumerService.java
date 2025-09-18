@@ -24,28 +24,29 @@ public class ConsumerService {
            topics = "${kafka.movies_topic}",
             groupId = "${spring.kafka.consumer.group-id}"
     ) // directly reference the property from application.properties
-    public void consume(ConsumerRecord<String, String> record, Acknowledgment ack) {
-        try{
+    public void consume(ConsumerRecord<String, String> record, Acknowledgment ack) throws Exception {
+
             String key = record.key();
             String value = record.value();
             int partition = record.partition();
             long offset = record.offset();
-//            if(value.equals("throw")){
-//                throw  new Exception("Explicitly thrown exception");
-//            }
             logger.warn(String.format(
                     "Partition: %d, Offset: %d, Key: %s, Message: %s",
                     partition, offset, key, value
             ));
 
             //            Manually acknowledge after success - offset will move
-            ack.acknowledge();
-        }
-        catch (Exception e){
-            // no acknowledgement - message will be redelivered.
-            System.out.println(e.getMessage());
-        }
-
+            if(!value.equals("throw")){
+                ack.acknowledge();
+                System.out.println("Acknowledged");
+//                otherwise check if it reaches DLT
+//                not acknowledging will not send it to DLT, an exception thrown inside listener will send it to DLT since we
+//                have provided the bean configuration for it.
+//                if we don't acknowledge - kafka will keep sending from that offset infinite times until we finally acknowledge it.
+            }else {
+//                this will send it to DLT
+                throw new Exception("message was throw");
+            }
     }
 
 
